@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#050816" />
+  <meta name="theme-color" content="#142454" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="format-detection" content="telephone=no" />
   <title>Gravity Dock</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="cartoon.css" />
 </head>
 <body>
   <main id="game-shell" aria-label="Gravity Dock">
@@ -26,12 +27,12 @@
       <div>
         <p class="eyebrow">MISSIONE</p>
         <h1 id="missionTitle">Prima orbita</h1>
-        <p id="missionText">Trascina il pianeta e curva la traiettoria del satellite dentro al portale.</p>
+        <p id="missionText">Trascina i corpi celesti e curva la traiettoria del satellite dentro al portale.</p>
       </div>
       <button id="startBtn" class="primary-btn" type="button">Inizia</button>
     </section>
 
-    <div class="hint" id="hint">☝️ Trascina il pianeta</div>
+    <div class="hint" id="hint">☝️ Trascina un corpo celeste</div>
 
     <section class="bottom-panel" aria-label="Controlli e telemetria">
       <div class="speed-wrap">
@@ -64,6 +65,7 @@
   <script src="game-data.js"></script>
   <script src="game-engine.js"></script>
   <script src="game-render.js"></script>
+  <script src="game-cartoon.js"></script>
   <script src="game-main.js"></script>
 </body>
 </html>
