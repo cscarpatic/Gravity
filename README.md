@@ -1,55 +1,44 @@
 # Gravity Dock
 
-Un piccolo puzzle game basato sull'attrazione gravitazionale: sposta i pianeti per deviare la traiettoria dei satelliti e guidarli nel punto di atterraggio.
+Puzzle gravitazionale touch-first in HTML/CSS/JavaScript, pensato per GitHub Pages e ottimizzato per Safari su iPhone e iPad.
 
-## Gioca
+## Come si gioca
 
-Il progetto è pensato per essere pubblicato direttamente con GitHub Pages. Non richiede build, framework o dipendenze esterne.
+I satelliti entrano nel settore orbitale contemporaneamente. Trascina il pianeta mobile per modificare in tempo reale il campo gravitazionale e portarli nei dock sulla destra senza collisioni o satelliti persi.
 
-## Controlli
+I dock sono riutilizzabili: nei livelli avanzati ce ne sono meno dei satelliti, quindi più traiettorie devono convergere sugli stessi punti di arrivo.
 
-- **iPhone / iPad:** trascina il pianeta con un dito.
-- **Desktop:** trascina il pianeta con mouse o trackpad.
-- La linea tratteggiata mostra una previsione della traiettoria del satellite.
-- Porta il satellite nel portale `DOCK` senza collisioni e con una velocità compatibile con l'atterraggio.
+### Progressione
 
-## Livelli
+| Livello | Satelliti simultanei | Dock |
+| --- | ---: | ---: |
+| 1 | 1 | 1 |
+| 2 | 2 | 1 |
+| 3 | 3 | 2 |
+| 4 | 4 | 2 |
+| 5 | 5 | 3 |
+| 6 | 6 | 4 |
 
-Il prototipo include 6 livelli con variazioni di:
+Dal livello 5 compare anche una seconda massa gravitazionale fissa.
 
-- massa e raggio dei pianeti;
-- velocità iniziale del satellite;
-- posizione e dimensione del dock;
-- sistemi con più corpi gravitazionali.
+## Grafica
+
+I pianeti sono renderizzati proceduralmente in Canvas con effetto pseudo-3D: illuminazione sferica, terminatore giorno/notte, atmosfera, texture, bande gassose, dettagli superficiali, glow e anelli prospettici. Non sono richieste immagini o librerie esterne.
+
+## Tecnica
+
+- HTML5 Canvas
+- JavaScript vanilla
+- CSS responsive con safe-area iOS
+- Pointer Events per touch, mouse e Apple Pencil
+- timestep fisso a 120 Hz per la simulazione fisica
+- devicePixelRatio limitato a 2 per bilanciare nitidezza e prestazioni su dispositivi Retina
+- nessuna dipendenza, build o backend
 
 ## GitHub Pages
 
-1. Apri **Settings → Pages** nella repository.
-2. In **Build and deployment**, scegli **Deploy from a branch**.
-3. Seleziona `main` e `/ (root)`.
-4. Salva.
+Pubblica la root del branch scelto con GitHub Pages. `.nojekyll` è incluso.
 
-GitHub pubblicherà il gioco usando `index.html` nella root.
+## Satelliti indipendenti
 
-## Struttura
-
-```text
-.
-├── index.html
-├── game.js
-├── styles.css
-├── .nojekyll
-└── README.md
-```
-
-## Tecnologia
-
-- HTML5
-- CSS3
-- JavaScript vanilla
-- Canvas 2D
-- Pointer Events
-- simulazione fisica a timestep fisso
-- rendering adattivo per display Retina
-
-Il progetto è ottimizzato per browser moderni, con particolare attenzione a Safari su iPhone e iPad.
+Nei livelli avanzati più satelliti sono attivi contemporaneamente, ma ciascuno è simulato come corpo indipendente: posizione, velocità, accelerazione gravitazionale, scia, collisioni e docking sono calcolati separatamente. Il numero di dock cresce più lentamente del numero di satelliti e ogni dock può essere riutilizzato.
