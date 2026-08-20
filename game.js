@@ -3,558 +3,186 @@
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d', { alpha: false });
-
+  const $ = (id) => document.getElementById(id);
   const ui = {
-    level: document.getElementById('levelValue'),
-    sat: document.getElementById('satValue'),
-    score: document.getElementById('scoreValue'),
-    speed: document.getElementById('speedValue'),
-    speedFill: document.getElementById('speedFill'),
-    missionCard: document.getElementById('missionCard'),
-    missionTitle: document.getElementById('missionTitle'),
-    missionText: document.getElementById('missionText'),
-    start: document.getElementById('startBtn'),
-    pause: document.getElementById('pauseBtn'),
-    pauseOverlay: document.getElementById('pauseOverlay'),
-    resume: document.getElementById('resumeBtn'),
-    restart: document.getElementById('restartBtn'),
-    resultOverlay: document.getElementById('resultOverlay'),
-    resultIcon: document.getElementById('resultIcon'),
-    resultKicker: document.getElementById('resultKicker'),
-    resultTitle: document.getElementById('resultTitle'),
-    resultText: document.getElementById('resultText'),
-    next: document.getElementById('nextBtn'),
-    hint: document.getElementById('hint')
+    level: $('levelValue'), sat: $('satValue'), dock: $('dockValue'), score: $('scoreValue'),
+    speed: $('speedValue'), speedFill: $('speedFill'), missionCard: $('missionCard'),
+    missionTitle: $('missionTitle'), missionText: $('missionText'), start: $('startBtn'),
+    pause: $('pauseBtn'), pauseOverlay: $('pauseOverlay'), resume: $('resumeBtn'),
+    restart: $('restartBtn'), resultOverlay: $('resultOverlay'), resultIcon: $('resultIcon'),
+    resultKicker: $('resultKicker'), resultTitle: $('resultTitle'), resultText: $('resultText'),
+    next: $('nextBtn'), hint: $('hint')
   };
 
   const levels = [
-    { name: 'Prima orbita', text: 'Trascina il pianeta e curva il satellite dentro al portale.', count: 3, mass: 1250, radius: 30, speed: 145, dock: 40, maxDockSpeed: 205, starDensity: 68 },
-    { name: 'Super-Terra', text: 'Più massa: piccole mosse producono curve molto più forti.', count: 3, mass: 1900, radius: 36, speed: 160, dock: 38, maxDockSpeed: 215, starDensity: 76 },
-    { name: 'Gigante gassoso', text: 'Attrazione intensa e poco spazio. Evita l’impatto col pianeta.', count: 4, mass: 2850, radius: 48, speed: 172, dock: 36, maxDockSpeed: 225, starDensity: 82 },
-    { name: 'Fionda', text: 'Il satellite arriva più veloce: usa il pianeta come fionda gravitazionale.', count: 4, mass: 2450, radius: 38, speed: 205, dock: 34, maxDockSpeed: 248, starDensity: 90 },
-    { name: 'Sistema binario', text: 'Ora hai due masse: sposta quella luminosa, sfrutta anche la compagna fissa.', count: 4, mass: 2100, radius: 34, speed: 190, dock: 33, maxDockSpeed: 235, secondPlanet: true, starDensity: 96 },
-    { name: 'Buco gravitazionale', text: 'Ultimo livello: gravità estrema, portale piccolo, precisione massima.', count: 5, mass: 3550, radius: 44, speed: 218, dock: 30, maxDockSpeed: 250, secondPlanet: true, starDensity: 110 }
+    { name:'Prima orbita', text:'Un satellite, un dock. Impara a piegare la sua traiettoria.', sats:1, docks:1, mass:1250, radius:31, speed:142, dockR:42, maxDock:205, type:'ocean' },
+    { name:'Doppio transito', text:'Due satelliti indipendenti, un dock riutilizzabile. Arrivano insieme ma ognuno segue la propria rotta.', sats:2, docks:1, mass:1720, radius:36, speed:150, dockR:40, maxDock:212, type:'rocky' },
+    { name:'Gigante gassoso', text:'Tre satelliti indipendenti e due dock. Velocità e angoli iniziali sono diversi.', sats:3, docks:2, mass:2550, radius:49, speed:160, dockR:38, maxDock:224, type:'gas', ring:true },
+    { name:'Fionda multipla', text:'Quattro satelliti, due dock. Leggi quattro orbite nello stesso momento.', sats:4, docks:2, mass:2350, radius:40, speed:182, dockR:36, maxDock:242, type:'lava' },
+    { name:'Sistema binario', text:'Cinque satelliti, tre dock e due masse. Il secondo pianeta è fisso.', sats:5, docks:3, mass:2200, radius:38, speed:188, dockR:34, maxDock:244, type:'ice', second:true },
+    { name:'Gravità estrema', text:'Sei satelliti indipendenti e quattro dock. Nessuna formazione: ogni rotta deve salvarsi da sola.', sats:6, docks:4, mass:3350, radius:46, speed:205, dockR:32, maxDock:258, type:'gas', ring:true, second:true }
   ];
 
-  const G = 110;
-  const SOFTEN = 36;
-  const TRAIL_MAX = 84;
+  const palettes = {
+    ocean:['#e8fbff','#4a9ce7','#173a84','#79d0b4','#73dcff'],
+    rocky:['#ffe8c9','#bd7355','#562d38','#75493f','#ffb080'],
+    gas:['#fff1cf','#cf9364','#50365e','#efc58f','#dcb5ff'],
+    lava:['#fff0c9','#d95c3d','#411725','#ffad45','#ff765b'],
+    ice:['#f5fdff','#73cada','#274c79','#c5f6ff','#a9eeff'],
+    violet:['#ffeaff','#a960cc','#43235c','#e5b1ff','#d991ff']
+  };
 
-  let W = 0, H = 0, DPR = 1;
-  let stars = [];
-  let running = false;
-  let paused = false;
-  let started = false;
-  let resultLocked = false;
-  let lastT = performance.now();
-  let acc = 0;
-  const FIXED_DT = 1 / 120;
+  const G = 108, SOFTEN = 38, DT = 1/120, TRAIL_MAX = 72;
+  const anglePattern = [-.075,.052,-.118,.096,-.038,.132,-.15,.018];
+  const speedPattern = [.94,1.035,.985,1.075,.955,1.045,1,1.09];
+  let W=0,H=0,DPR=1,last=performance.now(),acc=0;
+  let levelIndex=0, score=0, running=false, paused=false, started=false, resultLocked=false;
+  let stars=[], satellites=[], docks=[], planets=[], previews=[];
+  let docked=0,lost=0,hintTimer=0;
+  const pointer={down:false,planet:null};
 
-  let levelIndex = 0;
-  let satelliteIndex = 0;
-  let score = 0;
-  let satellite = null;
-  let target = null;
-  let planets = [];
-  let pointer = { down: false, x: 0, y: 0, planet: null };
-  let previewPath = [];
-  let hintTimer = 0;
+  const rand=(a,b)=>a+Math.random()*(b-a);
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const L=()=>levels[levelIndex];
+  const safeTop=()=>W<600?94:104;
+  const safeBottom=()=>W<600?100:112;
 
-  function rand(a, b) { return a + Math.random() * (b - a); }
-  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function resize(){
+    const r=canvas.getBoundingClientRect();
+    W=Math.max(320,r.width); H=Math.max(480,r.height); DPR=Math.min(devicePixelRatio||1,2);
+    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
+    buildStars(); clampPlanets(); if(started&&!resultLocked) preview();
+  }
 
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    W = Math.max(320, rect.width);
-    H = Math.max(480, rect.height);
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(W * DPR);
-    canvas.height = Math.round(H * DPR);
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    buildStars();
-    if (started && !resultLocked) {
-      clampPlanets();
-      computePreview();
+  function buildStars(){
+    const n=Math.round(W*H/360000*(70+levelIndex*9));
+    stars=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,r:rand(.35,1.45),a:rand(.25,.9),p:rand(0,6.28),tw:rand(.7,2)}));
+  }
+
+  function lanes(count,top,bottom,wobble){
+    if(count===1)return[(top+bottom)/2];
+    return Array.from({length:count},(_,i)=>top+(bottom-top)*(i+1)/(count+1)+rand(-wobble,wobble));
+  }
+
+  function features(radius,type){
+    return Array.from({length:type==='gas'?10:7},(_,i)=>({x:rand(-.55,.55)*radius,y:rand(-.55,.55)*radius,rx:rand(.08,.28)*radius,ry:rand(.035,.12)*radius,rot:rand(-.8,.8),a:rand(.08,.24),phase:rand(0,6.28),i}));
+  }
+
+  function planet(x,y,mass,radius,{type='ocean',ring=false,draggable=true,tilt=-.3}={}){
+    return{x,y,mass,radius,type,ring,draggable,tilt,rot:rand(0,6.28),pulse:rand(0,6.28),features:features(radius,type)};
+  }
+
+  function spawn(){
+    const l=L(), top=safeTop(), bottom=H-safeBottom(), playH=Math.max(260,bottom-top), mid=(top+bottom)/2;
+    docked=0; lost=0; resultLocked=false;
+    const dockYs=lanes(l.docks,top+58,bottom-58,Math.min(14,playH*.025));
+    docks=dockYs.map((y,i)=>({id:i+1,x:W-Math.max(50,W*.075)-(i%2)*Math.min(28,W*.035),y,r:l.dockR,phase:i*.9,uses:0}));
+    const satYs=lanes(l.sats,top+46,bottom-46,Math.min(10,playH*.02));
+    satellites=satYs.map((y,i)=>{
+      const reference=docks[(i*2+levelIndex)%docks.length];
+      const bias=clamp((reference.y-y)/Math.max(620,W*1.45),-.055,.055);
+      const angle=bias+anglePattern[i%anglePattern.length]*(levelIndex?.72:.25);
+      const speed=l.speed*speedPattern[i%speedPattern.length];
+      return{id:i+1,name:`S${i+1}`,x:Math.max(30,W*.047)-(i%2)*Math.min(18,W*.018),y,vx:speed*Math.cos(angle),vy:speed*Math.sin(angle),r:W<600?6.5:7.5,trail:[],rot:angle,status:'flying',lastSpeed:speed,pulse:rand(0,6.28),phase:i*.83};
+    });
+    const px=W*(H>W?.48:.5), py=clamp(mid+rand(-playH*.055,playH*.055),top+l.radius+16,bottom-l.radius-16);
+    planets=[planet(px,py,l.mass,l.radius,{type:l.type,ring:l.ring,tilt:-.3+levelIndex*.025})];
+    if(l.second) planets.push(planet(W*.70,clamp(mid-playH*.22,top+42,bottom-42),1400+levelIndex*180,28+levelIndex,{type:'violet',ring:levelIndex===5,draggable:false,tilt:.22}));
+    running=false; paused=false; previews=[]; pointer.planet=null; hintTimer=0;
+    ui.level.textContent=String(levelIndex+1); ui.sat.textContent=`0/${l.sats}`; ui.dock.textContent=String(l.docks); ui.score.textContent=String(score);
+    ui.missionTitle.textContent=l.name; ui.missionText.textContent=l.text; ui.start.textContent=levelIndex?'Lancia i satelliti':'Inizia';
+    ui.speed.textContent=l.speed.toFixed(1); ui.speedFill.style.width=`${Math.min(100,l.speed/3)}%`; ui.hint.classList.remove('visible');
+  }
+
+  function clampPlanets(){
+    for(const p of planets){p.x=clamp(p.x,p.radius+14,W-p.radius-14);p.y=clamp(p.y,safeTop()+12+p.radius,H-safeBottom()-12-p.radius);}
+  }
+
+  function gravity(x,y){
+    let ax=0,ay=0;
+    for(const p of planets){const dx=p.x-x,dy=p.y-y,d2=dx*dx+dy*dy+SOFTEN*SOFTEN,inv=1/Math.sqrt(d2),a=G*p.mass/d2;ax+=a*dx*inv;ay+=a*dy*inv;}
+    return{ax,ay};
+  }
+
+  function settle(s,status,target=null){
+    if(s.status!=='flying')return;
+    s.status=status;
+    if(status==='docked'){docked++; if(target)target.uses++;} else lost++;
+    telemetry();
+    if(docked+lost===L().sats){
+      if(!lost){const bonus=600+levelIndex*180+L().sats*90;score+=bonus;finish(true,'Tutti in salvo',`Tutti i ${L().sats} satelliti hanno raggiunto un dock con traiettorie indipendenti. Bonus +${bonus}.`);}
+      else finish(false,`${docked}/${L().sats} in salvo`,`${lost} satellite${lost===1?'':'i'} pers${lost===1?'o':'i'}. Ogni satellite deve raggiungere autonomamente un dock.`);
     }
   }
 
-  function buildStars() {
-    const density = levels[levelIndex]?.starDensity || 70;
-    const n = Math.round((W * H / 360000) * density);
-    stars = Array.from({ length: n }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: rand(.35, 1.35),
-      a: rand(.25, .9),
-      tw: rand(.7, 2.1),
-      p: rand(0, Math.PI * 2)
-    }));
+  function stepSatellite(s,dt){
+    if(s.status!=='flying')return;
+    const g=gravity(s.x,s.y); s.vx+=g.ax*dt; s.vy+=g.ay*dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.rot=Math.atan2(s.vy,s.vx); s.lastSpeed=Math.hypot(s.vx,s.vy);
+    if(!s.trail.length||Math.hypot(s.x-s.trail.at(-1).x,s.y-s.trail.at(-1).y)>5.5){s.trail.push({x:s.x,y:s.y});if(s.trail.length>TRAIL_MAX)s.trail.shift();}
+    for(const p of planets)if(Math.hypot(s.x-p.x,s.y-p.y)<p.radius+s.r+2){settle(s,'lost');return;}
+    for(const d of docks)if(Math.hypot(s.x-d.x,s.y-d.y)<d.r-2&&s.lastSpeed<=L().maxDock){const dist=Math.hypot(s.x-d.x,s.y-d.y),precision=Math.max(0,1-dist/d.r),speedBonus=Math.max(0,1-s.lastSpeed/L().maxDock);score+=Math.round(360+precision*280+speedBonus*160);settle(s,'docked',d);return;}
+    const m=95;if(s.x<-m||s.x>W+m||s.y<-m||s.y>H+m)settle(s,'lost');
   }
 
-  function safeTop() { return W < 600 ? 92 : 100; }
-  function safeBottom() { return W < 600 ? 98 : 110; }
+  function step(dt){if(resultLocked)return;for(const s of satellites)stepSatellite(s,dt);telemetry();}
+  function telemetry(){ui.sat.textContent=`${docked}/${L().sats}`;ui.score.textContent=String(score);const active=satellites.filter(s=>s.status==='flying'),max=active.length?Math.max(...active.map(s=>s.lastSpeed)):0;ui.speed.textContent=max.toFixed(1);ui.speedFill.style.width=`${Math.min(100,max/3)}%`;}
 
-  function level() { return levels[levelIndex]; }
-
-  function updateMissionCard() {
-    ui.level.textContent = String(levelIndex + 1);
-    ui.sat.textContent = `${satelliteIndex + 1}/${level().count}`;
-    ui.score.textContent = String(score);
-    ui.missionTitle.textContent = level().name;
-    ui.missionText.textContent = level().text;
-    ui.start.textContent = levelIndex === 0 && satelliteIndex === 0 ? 'Inizia' : 'Vai';
+  function preview(){
+    previews=satellites.map(sat=>{
+      if(sat.status!=='flying')return[];
+      const s={x:sat.x,y:sat.y,vx:sat.vx,vy:sat.vy},path=[];
+      for(let i=0;i<132;i++){const g=gravity(s.x,s.y);s.vx+=g.ax/36;s.vy+=g.ay/36;s.x+=s.vx/36;s.y+=s.vy/36;if(i%4===0)path.push({x:s.x,y:s.y});if(planets.some(p=>Math.hypot(s.x-p.x,s.y-p.y)<p.radius+4)||s.x<-20||s.x>W+20||s.y<-20||s.y>H+20)break;}
+      return path;
+    });
   }
 
-  function makePlanet(x, y, mass, radius, draggable = true, hue = 230) {
-    return { x, y, mass, radius, draggable, hue, pulse: rand(0, Math.PI * 2) };
+  function finish(ok,title,text){
+    resultLocked=true;running=false;ui.resultOverlay.classList.remove('hidden');ui.resultIcon.textContent=ok?'✓':'×';ui.resultIcon.style.color=ok?'var(--success)':'var(--danger)';ui.resultIcon.style.background=ok?'rgba(128,241,192,.12)':'rgba(255,122,145,.12)';ui.resultKicker.textContent=ok?'SATELLITI AGGANCIATI':'MISSIONE INCOMPLETA';ui.resultTitle.textContent=title;ui.resultText.textContent=text;ui.next.textContent=ok?(levelIndex===levels.length-1?'Ricomincia il viaggio':'Livello successivo'):'Riprova';ui.next.dataset.success=ok?'1':'0';
   }
 
-  function spawn() {
-    resultLocked = false;
-    const L = level();
-    const portrait = H > W;
-    const playTop = safeTop();
-    const playBottom = H - safeBottom();
-    const midY = (playTop + playBottom) / 2;
+  function startRun(){started=true;running=true;paused=false;ui.missionCard.classList.add('hidden');ui.pauseOverlay.classList.add('hidden');ui.resultOverlay.classList.add('hidden');ui.hint.textContent=L().sats>1?'☝️ Sposta il pianeta · ogni satellite ha la sua rotta':'☝️ Trascina il pianeta';ui.hint.classList.add('visible');hintTimer=3;preview();}
+  function restart(){spawn();ui.missionCard.classList.add('hidden');started=true;running=true;preview();}
+  function next(){const ok=ui.next.dataset.success==='1';ui.resultOverlay.classList.add('hidden');if(!ok)return restart();levelIndex++;if(levelIndex>=levels.length){levelIndex=0;score=0;}buildStars();spawn();ui.missionCard.classList.remove('hidden');}
+  function pause(){if(!started||resultLocked)return;paused=true;running=false;ui.pauseOverlay.classList.remove('hidden');}
+  function resume(){paused=false;running=true;ui.pauseOverlay.classList.add('hidden');}
 
-    target = {
-      x: W - Math.max(52, W * .08),
-      y: clamp(midY + rand(-H * .16, H * .16), playTop + 50, playBottom - 50),
-      r: L.dock,
-      phase: 0
-    };
+  function pointerPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+  canvas.addEventListener('pointerdown',e=>{if(!started||paused||resultLocked)return;pointer.down=true;const q=pointerPos(e);let best=null,bestD=Infinity;for(const p of planets){if(!p.draggable)continue;const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<p.radius+34&&d<bestD){best=p;bestD=d;}}pointer.planet=best;if(best){try{canvas.setPointerCapture(e.pointerId)}catch{}ui.hint.classList.remove('visible');}},{passive:true});
+  canvas.addEventListener('pointermove',e=>{if(!pointer.down||!pointer.planet||paused||resultLocked)return;const q=pointerPos(e);pointer.planet.x=q.x;pointer.planet.y=q.y;clampPlanets();preview();},{passive:true});
+  function pointerUp(e){pointer.down=false;pointer.planet=null;try{canvas.releasePointerCapture(e.pointerId)}catch{}}
+  canvas.addEventListener('pointerup',pointerUp,{passive:true});canvas.addEventListener('pointercancel',pointerUp,{passive:true});
+  ui.start.addEventListener('click',startRun);ui.pause.addEventListener('click',pause);ui.resume.addEventListener('click',resume);ui.restart.addEventListener('click',restart);ui.next.addEventListener('click',next);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)pause();});window.addEventListener('resize',resize,{passive:true});
 
-    const spawnY = clamp(midY + rand(-H * .13, H * .13), playTop + 48, playBottom - 48);
-    const angle = rand(-0.045, 0.045);
-    satellite = {
-      x: Math.max(34, W * .055),
-      y: spawnY,
-      vx: L.speed * Math.cos(angle),
-      vy: L.speed * Math.sin(angle),
-      r: W < 600 ? 7 : 8,
-      trail: [],
-      rotation: 0
-    };
-
-    const px = W * (portrait ? .48 : .5);
-    const py = clamp(midY + rand(-H * .08, H * .08), playTop + L.radius + 12, playBottom - L.radius - 12);
-    planets = [makePlanet(px, py, L.mass, L.radius, true, 228 + levelIndex * 8)];
-
-    if (L.secondPlanet) {
-      planets.push(makePlanet(W * .70, clamp(midY - H * .18, playTop + 38, playBottom - 38), 1250 + levelIndex * 160, 27, false, 310));
-    }
-
-    running = false;
-    paused = false;
-    pointer.planet = null;
-    previewPath = [];
-    ui.speed.textContent = `${L.speed.toFixed(1)}`;
-    ui.speedFill.style.width = `${Math.min(100, L.speed / 3)}%`;
-    updateMissionCard();
-    ui.hint.classList.remove('visible');
-    hintTimer = 0;
+  function background(t){
+    ctx.fillStyle='#050816';ctx.fillRect(0,0,W,H);const g=ctx.createRadialGradient(W*.5,H*.48,20,W*.5,H*.48,Math.max(W,H)*.8);g.addColorStop(0,'rgba(61,82,165,.14)');g.addColorStop(.55,'rgba(29,40,91,.05)');g.addColorStop(1,'rgba(5,8,22,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    for(const s of stars){ctx.globalAlpha=s.a*(.68+.32*Math.sin(t*.001*s.tw+s.p));ctx.fillStyle='#edf1ff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.28);ctx.fill();}ctx.globalAlpha=1;
   }
 
-  function clampPlanets() {
-    const top = safeTop() + 12;
-    const bottom = H - safeBottom() - 12;
-    for (const p of planets) {
-      p.x = clamp(p.x, p.radius + 12, W - p.radius - 12);
-      p.y = clamp(p.y, top + p.radius, bottom - p.radius);
-    }
+  function drawDock(d,t){
+    d.phase+=.014;const r=d.r*(1+Math.sin(t*.004+d.id)*.045);ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.phase);ctx.strokeStyle='rgba(128,241,192,.86)';ctx.lineWidth=2;ctx.setLineDash([9,8]);ctx.beginPath();ctx.arc(0,0,r,0,6.28);ctx.stroke();ctx.setLineDash([]);const rg=ctx.createRadialGradient(0,0,2,0,0,r*1.12);rg.addColorStop(0,'rgba(128,241,192,.15)');rg.addColorStop(1,'rgba(128,241,192,0)');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(0,0,r*1.12,0,6.28);ctx.fill();ctx.restore();ctx.fillStyle='rgba(220,255,244,.9)';ctx.font='700 9px system-ui';ctx.textAlign='center';ctx.fillText(`D${d.id}`,d.x,d.y+3);
   }
 
-  function gravityAt(x, y, ps = planets) {
-    let ax = 0, ay = 0;
-    for (const p of ps) {
-      const dx = p.x - x;
-      const dy = p.y - y;
-      const d2 = dx * dx + dy * dy + SOFTEN * SOFTEN;
-      const invD = 1 / Math.sqrt(d2);
-      const a = G * p.mass / d2;
-      ax += a * dx * invD;
-      ay += a * dy * invD;
-    }
-    return { ax, ay };
+  function gravityWell(p,t){ctx.save();for(let i=1;i<=5;i++){const rr=p.radius+i*(17+p.mass/760);ctx.globalAlpha=.04+(5-i)*.017;ctx.strokeStyle=p.draggable?'#9db2ff':'#dba6ff';ctx.lineWidth=i===1?1.4:1;ctx.beginPath();ctx.ellipse(p.x,p.y,rr+Math.sin(t*.0014+i+p.pulse)*2,rr*(.72+i*.025),p.tilt*.22,0,6.28);ctx.stroke();}ctx.restore();}
+
+  function planetRing(p,front){if(!p.ring)return;const c=palettes[p.type];ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.tilt);ctx.scale(1,.31);ctx.lineCap='round';ctx.lineWidth=Math.max(5,p.radius*.16);ctx.strokeStyle=front?`${c[0]}bb`:`${c[3]}66`;ctx.beginPath();ctx.arc(0,0,p.radius*1.58,front?0:Math.PI,front?Math.PI:6.28);ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle=front?'rgba(255,255,255,.54)':'rgba(255,255,255,.16)';ctx.beginPath();ctx.arc(0,0,p.radius*1.76,front?.08:Math.PI+.08,front?Math.PI-.08:6.28-.08);ctx.stroke();ctx.restore();}
+
+  function drawPlanet(p,t){
+    gravityWell(p,t);planetRing(p,false);const c=palettes[p.type],r=p.radius;ctx.save();ctx.shadowColor=`${c[4]}88`;ctx.shadowBlur=Math.max(14,r*.58);ctx.fillStyle=c[2];ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.28);ctx.fill();ctx.shadowBlur=0;
+    ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.28);ctx.clip();const sphere=ctx.createRadialGradient(p.x-r*.35,p.y-r*.4,r*.05,p.x+r*.2,p.y+r*.2,r*1.2);sphere.addColorStop(0,c[0]);sphere.addColorStop(.27,c[1]);sphere.addColorStop(.72,c[2]);sphere.addColorStop(1,'#080d22');ctx.fillStyle=sphere;ctx.fillRect(p.x-r,p.y-r,r*2,r*2);p.rot+=.0002;
+    if(p.type==='gas'){for(let i=-5;i<=5;i++){const yy=p.y+i*r*.18+Math.sin(t*.0007+i)*r*.025;ctx.globalAlpha=.12+(i%2===0?.06:0);ctx.strokeStyle=i%2===0?c[0]:c[3];ctx.lineWidth=Math.max(2,r*.075);ctx.beginPath();ctx.moveTo(p.x-r*1.1,yy);ctx.bezierCurveTo(p.x-r*.35,yy-r*.08,p.x+r*.35,yy+r*.08,p.x+r*1.1,yy);ctx.stroke();}}
+    else for(const f of p.features){ctx.save();ctx.translate(p.x+f.x+Math.sin(p.rot+f.phase)*r*.025,p.y+f.y);ctx.rotate(f.rot);ctx.globalAlpha=f.a;ctx.fillStyle=c[3];ctx.beginPath();ctx.ellipse(0,0,f.rx,f.ry,0,0,6.28);ctx.fill();if(p.type==='lava'&&f.i%2===0){ctx.globalAlpha=.3;ctx.strokeStyle=c[0];ctx.stroke();}ctx.restore();}
+    ctx.globalAlpha=1;const night=ctx.createLinearGradient(p.x-r,p.y-r,p.x+r,p.y+r);night.addColorStop(0,'rgba(2,4,15,0)');night.addColorStop(.55,'rgba(2,4,15,.03)');night.addColorStop(1,'rgba(2,4,15,.7)');ctx.fillStyle=night;ctx.fillRect(p.x-r,p.y-r,r*2,r*2);const spec=ctx.createRadialGradient(p.x-r*.36,p.y-r*.42,0,p.x-r*.36,p.y-r*.42,r*.52);spec.addColorStop(0,'rgba(255,255,255,.44)');spec.addColorStop(.35,'rgba(255,255,255,.1)');spec.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=spec;ctx.fillRect(p.x-r,p.y-r,r*2,r*2);ctx.restore();ctx.strokeStyle=`${c[4]}99`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,r+.5,0,6.28);ctx.stroke();ctx.restore();planetRing(p,true);
+    if(pointer.planet===p){ctx.save();ctx.strokeStyle='rgba(255,255,255,.88)';ctx.lineWidth=2;ctx.setLineDash([5,6]);ctx.beginPath();ctx.arc(p.x,p.y,r+13,0,6.28);ctx.stroke();ctx.restore();}
   }
 
-  function step(dt) {
-    if (!satellite || resultLocked) return;
-    const g = gravityAt(satellite.x, satellite.y);
-    satellite.vx += g.ax * dt;
-    satellite.vy += g.ay * dt;
-    satellite.x += satellite.vx * dt;
-    satellite.y += satellite.vy * dt;
-    satellite.rotation = Math.atan2(satellite.vy, satellite.vx);
+  function trails(){ctx.save();ctx.lineWidth=1.7;ctx.lineCap='round';for(const s of satellites){for(let i=1;i<s.trail.length;i++){const a=s.trail[i-1],b=s.trail[i],alpha=(i/s.trail.length)*.38*(.82+.18*Math.sin(i*.55+s.phase));ctx.strokeStyle=`rgba(151,178,255,${alpha})`;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}ctx.restore();}
+  function previewDraw(){ctx.save();for(const path of previews)for(let i=0;i<path.length;i+=2){const p=path[i];ctx.globalAlpha=.14+.3*(1-i/Math.max(1,path.length));ctx.fillStyle='rgba(204,214,255,.8)';ctx.beginPath();ctx.arc(p.x,p.y,1.3,0,6.28);ctx.fill();}ctx.restore();}
+  function satelliteDraw(s,t){if(s.status!=='flying')return;ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.rot);ctx.shadowColor=`rgba(148,174,255,${.72+Math.sin(t*.006+s.pulse)*.18})`;ctx.shadowBlur=12;ctx.fillStyle='#edf1ff';ctx.fillRect(-5.4,-3.6,10.8,7.2);ctx.shadowBlur=0;ctx.fillStyle='#91a8ff';ctx.fillRect(-13,-2.6,6.6,5.2);ctx.fillRect(6.4,-2.6,6.6,5.2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(3.7,0,1.7,0,6.28);ctx.fill();ctx.restore();ctx.fillStyle='rgba(230,236,255,.8)';ctx.font='700 9px system-ui';ctx.textAlign='center';ctx.fillText(s.name,s.x,s.y-12);}
+  function arrow(t){if(!started||resultLocked||pointer.planet||hintTimer<=0)return;const p=planets.find(x=>x.draggable);if(!p)return;ctx.save();ctx.globalAlpha=Math.min(1,hintTimer)*.65;ctx.strokeStyle='#fff';ctx.lineWidth=2;const y=p.y-p.radius-27+Math.sin(t*.006)*4;ctx.beginPath();ctx.moveTo(p.x,y-10);ctx.lineTo(p.x,y+8);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x-5,y+3);ctx.lineTo(p.x,y+9);ctx.lineTo(p.x+5,y+3);ctx.stroke();ctx.restore();}
 
-    if (satellite.trail.length === 0 || distanceSq(satellite.trail[satellite.trail.length - 1], satellite) > 25) {
-      satellite.trail.push({ x: satellite.x, y: satellite.y });
-      if (satellite.trail.length > TRAIL_MAX) satellite.trail.shift();
-    }
+  function render(t){background(t);for(const d of docks)drawDock(d,t);previewDraw();trails();for(const p of planets)drawPlanet(p,t);for(const s of satellites)satelliteDraw(s,t);arrow(t);}
+  function loop(t){const frame=Math.min(.035,(t-last)/1000);last=t;if(running&&!paused){acc+=frame;while(acc>=DT){step(DT);acc-=DT;}if(hintTimer>0){hintTimer-=frame;if(hintTimer<=0)ui.hint.classList.remove('visible');}}render(t);requestAnimationFrame(loop);}
 
-    for (const p of planets) {
-      const minD = p.radius + satellite.r + 2;
-      if ((satellite.x - p.x) ** 2 + (satellite.y - p.y) ** 2 < minD ** 2) {
-        finish(false, 'Impatto!', 'Il satellite ha toccato una massa. Prova una traiettoria più larga.');
-        return;
-      }
-    }
-
-    const dx = satellite.x - target.x;
-    const dy = satellite.y - target.y;
-    const speed = Math.hypot(satellite.vx, satellite.vy);
-    const d = Math.hypot(dx, dy);
-    const toward = (satellite.vx * (target.x - satellite.x) + satellite.vy * (target.y - satellite.y)) > 0;
-    if (d < target.r - 2 && speed <= level().maxDockSpeed && toward) {
-      const precision = Math.max(0, 1 - d / target.r);
-      const speedBonus = Math.max(0, 1 - speed / level().maxDockSpeed);
-      const earned = Math.round(450 + precision * 350 + speedBonus * 200);
-      score += earned;
-      finish(true, `+${earned} punti`, 'Aggancio pulito: portale centrato e velocità sotto controllo.');
-      return;
-    }
-
-    const margin = 90;
-    if (satellite.x < -margin || satellite.x > W + margin || satellite.y < -margin || satellite.y > H + margin) {
-      finish(false, 'Satellite perso', 'È uscito dal settore orbitale. Sposta il pianeta prima e curva di più.');
-      return;
-    }
-
-    ui.speed.textContent = speed.toFixed(1);
-    ui.speedFill.style.width = `${Math.min(100, speed / 3)}%`;
-  }
-
-  function distanceSq(a, b) { const dx = a.x - b.x, dy = a.y - b.y; return dx * dx + dy * dy; }
-
-  function computePreview() {
-    if (!satellite || resultLocked) return;
-    let s = { x: satellite.x, y: satellite.y, vx: satellite.vx, vy: satellite.vy };
-    const path = [];
-    const dt = 1 / 38;
-    for (let i = 0; i < 150; i++) {
-      const g = gravityAt(s.x, s.y);
-      s.vx += g.ax * dt;
-      s.vy += g.ay * dt;
-      s.x += s.vx * dt;
-      s.y += s.vy * dt;
-      if (i % 3 === 0) path.push({ x: s.x, y: s.y });
-      let hit = false;
-      for (const p of planets) {
-        if ((s.x - p.x) ** 2 + (s.y - p.y) ** 2 < (p.radius + 4) ** 2) { hit = true; break; }
-      }
-      if (hit || s.x < -20 || s.x > W + 20 || s.y < -20 || s.y > H + 20) break;
-    }
-    previewPath = path;
-  }
-
-  function finish(success, title, text) {
-    resultLocked = true;
-    running = false;
-    ui.resultOverlay.classList.remove('hidden');
-    ui.resultIcon.textContent = success ? '✓' : '×';
-    ui.resultIcon.style.color = success ? 'var(--success)' : 'var(--danger)';
-    ui.resultIcon.style.background = success ? 'rgba(128, 241, 192, .12)' : 'rgba(255, 122, 145, .12)';
-    ui.resultKicker.textContent = success ? 'AGGANCIO RIUSCITO' : 'MISSIONE FALLITA';
-    ui.resultTitle.textContent = title;
-    ui.resultText.textContent = text;
-    ui.next.textContent = success ? (satelliteIndex + 1 >= level().count ? (levelIndex + 1 >= levels.length ? 'Ricomincia il viaggio' : 'Livello successivo') : 'Prossimo satellite') : 'Riprova';
-    ui.next.dataset.success = success ? '1' : '0';
-  }
-
-  function startRun() {
-    started = true;
-    running = true;
-    paused = false;
-    ui.missionCard.classList.add('hidden');
-    ui.pauseOverlay.classList.add('hidden');
-    ui.resultOverlay.classList.add('hidden');
-    ui.hint.classList.add('visible');
-    hintTimer = 2.5;
-    computePreview();
-  }
-
-  function restartCurrent() {
-    spawn();
-    ui.missionCard.classList.add('hidden');
-    started = true;
-    running = true;
-    computePreview();
-  }
-
-  function nextMission() {
-    const success = ui.next.dataset.success === '1';
-    ui.resultOverlay.classList.add('hidden');
-    if (!success) {
-      restartCurrent();
-      return;
-    }
-    satelliteIndex++;
-    if (satelliteIndex >= level().count) {
-      satelliteIndex = 0;
-      levelIndex++;
-      if (levelIndex >= levels.length) {
-        levelIndex = 0;
-        score = 0;
-      }
-      buildStars();
-      spawn();
-      ui.missionCard.classList.remove('hidden');
-    } else {
-      spawn();
-      ui.missionCard.classList.add('hidden');
-      running = true;
-      started = true;
-      computePreview();
-    }
-  }
-
-  function pauseGame() {
-    if (!started || resultLocked) return;
-    paused = true;
-    running = false;
-    ui.pauseOverlay.classList.remove('hidden');
-  }
-
-  function resumeGame() {
-    paused = false;
-    running = true;
-    ui.pauseOverlay.classList.add('hidden');
-  }
-
-  function pointerPos(e) {
-    const r = canvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  }
-
-  canvas.addEventListener('pointerdown', (e) => {
-    if (!started || paused || resultLocked) return;
-    const pos = pointerPos(e);
-    pointer.down = true;
-    pointer.x = pos.x;
-    pointer.y = pos.y;
-    let best = null, bestD = Infinity;
-    for (const p of planets) {
-      if (!p.draggable) continue;
-      const d = Math.hypot(pos.x - p.x, pos.y - p.y);
-      if (d < p.radius + 28 && d < bestD) { best = p; bestD = d; }
-    }
-    pointer.planet = best;
-    if (best) {
-      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-      ui.hint.classList.remove('visible');
-    }
-  }, { passive: true });
-
-  canvas.addEventListener('pointermove', (e) => {
-    if (!pointer.down || !pointer.planet || paused || resultLocked) return;
-    const pos = pointerPos(e);
-    const p = pointer.planet;
-    p.x = pos.x;
-    p.y = pos.y;
-    clampPlanets();
-    computePreview();
-  }, { passive: true });
-
-  function endPointer(e) {
-    pointer.down = false;
-    pointer.planet = null;
-    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
-  }
-  canvas.addEventListener('pointerup', endPointer, { passive: true });
-  canvas.addEventListener('pointercancel', endPointer, { passive: true });
-
-  ui.start.addEventListener('click', startRun);
-  ui.pause.addEventListener('click', pauseGame);
-  ui.resume.addEventListener('click', resumeGame);
-  ui.restart.addEventListener('click', restartCurrent);
-  ui.next.addEventListener('click', nextMission);
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && running) pauseGame();
-  });
-  window.addEventListener('resize', resize, { passive: true });
-
-  function drawBackground(t) {
-    ctx.fillStyle = '#050816';
-    ctx.fillRect(0, 0, W, H);
-
-    const grad = ctx.createRadialGradient(W * .5, H * .5, 20, W * .5, H * .5, Math.max(W, H) * .72);
-    grad.addColorStop(0, 'rgba(55, 73, 148, .12)');
-    grad.addColorStop(1, 'rgba(5, 8, 22, 0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    for (const s of stars) {
-      const a = s.a * (.68 + .32 * Math.sin(t * .001 * s.tw + s.p));
-      ctx.globalAlpha = a;
-      ctx.fillStyle = '#e9eeff';
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawTarget(t) {
-    if (!target) return;
-    target.phase += .018;
-    const pulse = 1 + Math.sin(t * .004) * .05;
-    const r = target.r * pulse;
-
-    ctx.save();
-    ctx.translate(target.x, target.y);
-    ctx.rotate(target.phase);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(128, 241, 192, .82)';
-    ctx.setLineDash([9, 8]);
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    const rg = ctx.createRadialGradient(0, 0, 3, 0, 0, r);
-    rg.addColorStop(0, 'rgba(128,241,192,.12)');
-    rg.addColorStop(1, 'rgba(128,241,192,0)');
-    ctx.fillStyle = rg;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
-    ctx.fillStyle = 'rgba(205,255,237,.88)';
-    ctx.font = '700 10px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('DOCK', target.x, target.y + 4);
-  }
-
-  function drawGravityWell(p, t) {
-    const ringCount = 4;
-    ctx.save();
-    for (let i = 1; i <= ringCount; i++) {
-      const rr = p.radius + i * (18 + p.mass / 480);
-      ctx.globalAlpha = .08 + (ringCount - i) * .018;
-      ctx.strokeStyle = '#9db2ff';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, rr + Math.sin(t * .0015 + i + p.pulse) * 2, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
-  function drawPlanet(p, t) {
-    drawGravityWell(p, t);
-    const glow = ctx.createRadialGradient(p.x - p.radius * .28, p.y - p.radius * .3, p.radius * .12, p.x, p.y, p.radius * 1.2);
-    glow.addColorStop(0, p.draggable ? 'rgba(238,243,255,.95)' : 'rgba(255,219,251,.88)');
-    glow.addColorStop(.28, p.draggable ? 'rgba(131,159,255,.96)' : 'rgba(216,140,255,.9)');
-    glow.addColorStop(1, p.draggable ? 'rgba(60,74,150,.94)' : 'rgba(101,54,130,.94)');
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-
-    ctx.strokeStyle = p.draggable ? 'rgba(214,224,255,.6)' : 'rgba(255,220,249,.4)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, p.radius * 1.35, p.radius * .28, -.28, 0, Math.PI * 2);
-    ctx.stroke();
-
-    if (p.draggable && pointer.planet === p) {
-      ctx.strokeStyle = 'rgba(255,255,255,.8)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 6]);
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + 12, 0, Math.PI * 2); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-
-  function drawTrail() {
-    if (!satellite || satellite.trail.length < 2) return;
-    ctx.save();
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    for (let i = 1; i < satellite.trail.length; i++) {
-      const a = satellite.trail[i - 1], b = satellite.trail[i];
-      ctx.strokeStyle = `rgba(151,178,255,${(i / satellite.trail.length) * .48})`;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawPreview() {
-    if (!previewPath.length || resultLocked) return;
-    ctx.save();
-    ctx.fillStyle = 'rgba(204,214,255,.34)';
-    for (let i = 0; i < previewPath.length; i += 2) {
-      const p = previewPath[i];
-      ctx.globalAlpha = .18 + .4 * (1 - i / previewPath.length);
-      ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
-  function drawSatellite() {
-    if (!satellite) return;
-    const s = satellite;
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(s.rotation);
-
-    ctx.shadowColor = 'rgba(148,174,255,.8)';
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = '#edf1ff';
-    ctx.fillRect(-6, -4, 12, 8);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#91a8ff';
-    ctx.fillRect(-14, -3, 7, 6);
-    ctx.fillRect(7, -3, 7, 6);
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(4, 0, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawArrowHint(t) {
-    if (!started || resultLocked || !satellite || pointer.planet) return;
-    if (hintTimer <= 0) return;
-    const p = planets.find(p => p.draggable);
-    if (!p) return;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, hintTimer) * .65;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    const y = p.y - p.radius - 25 + Math.sin(t * .006) * 4;
-    ctx.beginPath(); ctx.moveTo(p.x, y - 10); ctx.lineTo(p.x, y + 8); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(p.x - 5, y + 3); ctx.lineTo(p.x, y + 9); ctx.lineTo(p.x + 5, y + 3); ctx.stroke();
-    ctx.restore();
-  }
-
-  function render(t) {
-    drawBackground(t);
-    drawTarget(t);
-    drawPreview();
-    drawTrail();
-    for (const p of planets) drawPlanet(p, t);
-    drawSatellite();
-    drawArrowHint(t);
-  }
-
-  function loop(t) {
-    const frame = Math.min(.035, (t - lastT) / 1000);
-    lastT = t;
-    if (running && !paused) {
-      acc += frame;
-      while (acc >= FIXED_DT) {
-        step(FIXED_DT);
-        acc -= FIXED_DT;
-      }
-      if (hintTimer > 0) {
-        hintTimer -= frame;
-        if (hintTimer <= 0) ui.hint.classList.remove('visible');
-      }
-    }
-    render(t);
-    requestAnimationFrame(loop);
-  }
-
-  resize();
-  spawn();
-  requestAnimationFrame(loop);
+  resize();spawn();requestAnimationFrame(loop);
 })();
