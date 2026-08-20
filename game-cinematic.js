@@ -6,6 +6,7 @@
   if (!C || !P) return;
 
   const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const sideOrder = ['right', 'bottom', 'top', 'left'];
   const opposite = { left:'right', right:'left', top:'bottom', bottom:'top' };
   const craftKinds = ['orbiter', 'shuttle', 'probe', 'glider', 'freighter', 'comet'];
@@ -20,7 +21,6 @@
   ];
 
   const originalSpawnLevel = P.spawnLevel;
-  const originalFinish = P.finish;
 
   function lanePos(game, side, index, total) {
     const top = game.safeTop() + 56;
@@ -99,8 +99,10 @@
       if (spawnSide === 'bottom') y = bottom;
 
       const targetDock = this.docks[i % this.docks.length];
+      let tx = targetDock.x;
+      let ty = targetDock.y;
       const angleOffset = C.anglePattern[i % C.anglePattern.length] * .34;
-      const angle = Math.atan2(targetDock.y - y, targetDock.x - x) + angleOffset;
+      const angle = Math.atan2(ty - y, tx - x) + angleOffset;
       const speed = this.L().speed * C.speedPattern[i % C.speedPattern.length];
       const paint = extraPaint[i % extraPaint.length];
       return {
@@ -122,14 +124,9 @@
     ensurePlanVisuals(this);
   };
 
-  P.finish = function(ok, title, text) {
-    if (this.effects) this.effects.length = 0;
-    originalFinish.call(this, ok, title, text);
-  };
-
   P.createExplosion = function(x, y, color = '#ffd36a') {
     this.effects = this.effects || [];
-    this.effects.push({ type:'boom', x, y, t:0, ttl:.52, color });
+    this.effects.push({ type:'boom', x, y, born:performance.now(), ttlMs:560, color });
   };
 
   P.stepSatellite = function(s, dt) {
@@ -174,7 +171,6 @@
     if (this.resultLocked) return;
     this.maybeRelease(dt);
     for (const s of this.satellites) this.stepSatellite(s, dt);
-    if (this.effects) this.effects = this.effects.filter(e => (e.t += dt) < e.ttl);
     for (const d of this.docks) d.ingest = Math.max(0, d.ingest - dt * 2.4);
     this.telemetry();
   };
@@ -212,19 +208,19 @@
 
     const stroke = '#24345e';
     const body = () => {
-      ctx.beginPath();
       if (s.kind === 'shuttle') {
+        ctx.beginPath();
         ctx.moveTo(-10,-6); ctx.lineTo(5,-6); ctx.quadraticCurveTo(12,-2,12,0); ctx.quadraticCurveTo(12,2,5,6); ctx.lineTo(-10,6); ctx.quadraticCurveTo(-13,0,-10,-6); ctx.closePath();
       } else if (s.kind === 'probe') {
-        ctx.roundRect(-8,-6,18,12,5);
+        ctx.beginPath(); ctx.roundRect(-8,-6,18,12,5);
       } else if (s.kind === 'glider') {
-        ctx.moveTo(-11,-5); ctx.lineTo(4,-7); ctx.lineTo(11,0); ctx.lineTo(4,7); ctx.lineTo(-11,5); ctx.closePath();
+        ctx.beginPath(); ctx.moveTo(-11,-5); ctx.lineTo(4,-7); ctx.lineTo(11,0); ctx.lineTo(4,7); ctx.lineTo(-11,5); ctx.closePath();
       } else if (s.kind === 'freighter') {
-        ctx.roundRect(-10,-7,20,14,6);
+        ctx.beginPath(); ctx.roundRect(-10,-7,20,14,6);
       } else if (s.kind === 'comet') {
-        ctx.moveTo(-9,-5); ctx.lineTo(5,-6); ctx.quadraticCurveTo(14,0,5,6); ctx.lineTo(-9,5); ctx.quadraticCurveTo(-12,0,-9,-5); ctx.closePath();
+        ctx.beginPath(); ctx.moveTo(-9,-5); ctx.lineTo(5,-6); ctx.quadraticCurveTo(14,0,5,6); ctx.lineTo(-9,5); ctx.quadraticCurveTo(-12,0,-9,-5); ctx.closePath();
       } else {
-        ctx.moveTo(-9,-6); ctx.lineTo(5,-6); ctx.quadraticCurveTo(11,-3,12,0); ctx.quadraticCurveTo(11,3,5,6); ctx.lineTo(-9,6); ctx.quadraticCurveTo(-12,0,-9,-6); ctx.closePath();
+        ctx.beginPath(); ctx.moveTo(-9,-6); ctx.lineTo(5,-6); ctx.quadraticCurveTo(11,-3,12,0); ctx.quadraticCurveTo(11,3,5,6); ctx.lineTo(-9,6); ctx.quadraticCurveTo(-12,0,-9,-6); ctx.closePath();
       }
     };
 
@@ -306,8 +302,10 @@
     const ctx = this.ctx;
     if (!this.effects) return;
     ctx.save();
+    const now = performance.now();
+    this.effects = this.effects.filter(e => now - e.born < e.ttlMs);
     for (const e of this.effects) {
-      const p = e.t / e.ttl;
+      const p = Math.min(1, (now - e.born) / e.ttlMs);
       const r = 6 + p * 18;
       ctx.globalAlpha = 1 - p;
       ctx.fillStyle = e.color;
