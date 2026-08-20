@@ -162,3 +162,34 @@ h2 { font-size: 30px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* HUD compatto per iPhone: 4 metriche + pausa senza overflow. */
+@media (max-width: 430px) {
+  .top-hud {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) 38px;
+    gap: 5px;
+  }
+  .hud-pill {
+    padding: 7px 5px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .hud-pill span {
+    font-size: 8px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  .hud-pill strong { font-size: 12px; }
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .hint {
+    max-width: calc(100% - 28px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
+}
