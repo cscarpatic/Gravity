@@ -12,12 +12,13 @@
 </head>
 <body>
   <main id="game-shell" aria-label="Gravity Dock">
-    <canvas id="game" aria-label="Campo di gioco"></canvas>
+    <canvas id="game" aria-label="Campo di gioco gravitazionale"></canvas>
 
     <header class="hud top-hud" aria-label="Stato partita">
       <div class="hud-pill"><span>Livello</span><strong id="levelValue">1</strong></div>
-      <div class="hud-pill"><span>Satellite</span><strong id="satValue">1/3</strong></div>
-      <div class="hud-pill"><span>Punti</span><strong id="scoreValue">0</strong></div>
+      <div class="hud-pill"><span>Salvati</span><strong id="satValue">0/1</strong></div>
+      <div class="hud-pill"><span>Dock</span><strong id="dockValue">1</strong></div>
+      <div class="hud-pill score-pill"><span>Punti</span><strong id="scoreValue">0</strong></div>
       <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pausa">Ⅱ</button>
     </header>
 
@@ -34,7 +35,7 @@
 
     <section class="bottom-panel" aria-label="Controlli e telemetria">
       <div class="speed-wrap">
-        <div class="label-row"><span>Velocità satellite</span><strong id="speedValue">0.0</strong></div>
+        <div class="label-row"><span>Velocità massima in volo</span><strong id="speedValue">0.0</strong></div>
         <div class="meter"><div class="meter-fill" id="speedFill"></div></div>
       </div>
       <button id="restartBtn" class="secondary-btn" type="button">↻ Riprova</button>
@@ -44,7 +45,7 @@
       <div class="modal">
         <p class="eyebrow">PAUSA</p>
         <h2>Orbita congelata</h2>
-        <p>Riprendi quando vuoi. La simulazione resta ferma.</p>
+        <p>Riprendi quando vuoi. Ogni satellite resta congelato esattamente nella propria traiettoria.</p>
         <button id="resumeBtn" class="primary-btn" type="button">Riprendi</button>
       </div>
     </section>
@@ -52,10 +53,10 @@
     <section class="overlay hidden" id="resultOverlay" aria-live="polite">
       <div class="modal">
         <div id="resultIcon" class="result-icon">✓</div>
-        <p class="eyebrow" id="resultKicker">AGGANCIO RIUSCITO</p>
+        <p class="eyebrow" id="resultKicker">SATELLITI AGGANCIATI</p>
         <h2 id="resultTitle">Perfetto!</h2>
-        <p id="resultText">Il satellite è entrato nel portale a velocità controllata.</p>
-        <button id="nextBtn" class="primary-btn" type="button">Prossimo satellite</button>
+        <p id="resultText">Tutti i satelliti hanno raggiunto un dock, ciascuno con la propria traiettoria.</p>
+        <button id="nextBtn" class="primary-btn" type="button">Livello successivo</button>
       </div>
     </section>
   </main>
