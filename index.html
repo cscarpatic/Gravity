@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#0d031c" />
+  <meta name="theme-color" content="#090016" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="format-detection" content="telephone=no" />
@@ -11,38 +11,58 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Gravity Dock</title>
-  <link rel="stylesheet" href="styles.css?v=20260820-1641" />
-  <link rel="stylesheet" href="cartoon.css?v=20260820-1641" />
+  <link rel="stylesheet" href="styles.css?v=20260820-1718" />
+  <link rel="stylesheet" href="cartoon.css?v=20260820-1718" />
 </head>
 <body>
   <main id="game-shell" aria-label="Gravity Dock">
     <canvas id="game" aria-label="Campo di gioco gravitazionale"></canvas>
 
     <header class="hud top-hud" aria-label="Stato partita">
-      <div class="hud-pill"><span>Livello</span><strong id="levelValue">1</strong></div>
-      <div class="hud-pill"><span>Salvati</span><strong id="satValue">0/1</strong></div>
-      <div class="hud-pill"><span>Dock</span><strong id="dockValue">1</strong></div>
-      <div class="hud-pill score-pill"><span>Punti</span><strong id="scoreValue">0</strong></div>
+      <section class="level-hud game-panel" aria-label="Livello corrente">
+        <div class="level-copy">
+          <div class="level-line"><span>LIVELLO</span> <strong id="levelValue">1</strong></div>
+          <div class="rank-label">ESPLORATORE SPAZIALE</div>
+        </div>
+        <div class="rating-stars" aria-hidden="true"><span>★</span><span>★</span><span class="empty">★</span></div>
+      </section>
+
+      <section class="objective-hud game-panel" aria-label="Obiettivo missione">
+        <span class="objective-title">AGGANCIA AI DOCK!</span>
+        <strong id="satValue">0/1</strong>
+        <small>DOCK <b id="dockValue">1</b></small>
+      </section>
+
+      <section class="score-hud game-panel" aria-label="Punteggio">
+        <span>PUNTI</span>
+        <strong id="scoreValue">0</strong>
+      </section>
+
       <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pausa">Ⅱ</button>
     </header>
 
     <section class="mission-card" id="missionCard" aria-live="polite">
-      <div>
+      <div class="mission-bot" aria-hidden="true">
+        <span class="bot-antenna"></span>
+        <span class="bot-head"><i></i><i></i></span>
+        <span class="bot-body"></span>
+      </div>
+      <div class="mission-copy">
         <p class="eyebrow">MISSIONE</p>
         <h1 id="missionTitle">Prima orbita</h1>
         <p id="missionText">Trascina i corpi celesti e curva la traiettoria del satellite dentro al portale.</p>
       </div>
-      <button id="startBtn" class="primary-btn" type="button">Inizia</button>
+      <button id="startBtn" class="primary-btn" type="button">INIZIA</button>
     </section>
 
     <div class="hint" id="hint">☝️ Trascina un corpo celeste</div>
 
     <section class="bottom-panel" aria-label="Controlli e telemetria">
+      <button id="restartBtn" class="secondary-btn" type="button"><span>↻</span><small>RIAVVIA</small></button>
       <div class="speed-wrap">
-        <div class="label-row"><span>Velocità massima in volo</span><strong id="speedValue">0.0</strong></div>
+        <div class="label-row"><span>VELOCITÀ</span><strong id="speedValue">0.0</strong></div>
         <div class="meter"><div class="meter-fill" id="speedFill"></div></div>
       </div>
-      <button id="restartBtn" class="secondary-btn" type="button">↻ Riprova</button>
     </section>
 
     <section class="overlay hidden" id="pauseOverlay" aria-live="polite">
@@ -50,7 +70,7 @@
         <p class="eyebrow">PAUSA</p>
         <h2>Orbita congelata</h2>
         <p>Riprendi quando vuoi. Ogni satellite resta congelato esattamente nella propria traiettoria.</p>
-        <button id="resumeBtn" class="primary-btn" type="button">Riprendi</button>
+        <button id="resumeBtn" class="primary-btn" type="button">RIPRENDI</button>
       </div>
     </section>
 
@@ -60,21 +80,21 @@
         <p class="eyebrow" id="resultKicker">SATELLITI AGGANCIATI</p>
         <h2 id="resultTitle">Perfetto!</h2>
         <p id="resultText">Tutti i satelliti hanno raggiunto un dock, ciascuno con la propria traiettoria.</p>
-        <button id="nextBtn" class="primary-btn" type="button">Livello successivo</button>
+        <button id="nextBtn" class="primary-btn" type="button">LIVELLO SUCCESSIVO</button>
       </div>
     </section>
   </main>
 
-  <script>window.__GD_BUILD__='20260820-1641';</script>
-  <script src="game-data.js?v=20260820-1641"></script>
-  <script src="game-engine.js?v=20260820-1641"></script>
-  <script src="game-render.js?v=20260820-1641"></script>
-  <script src="game-cartoon.js?v=20260820-1641"></script>
-  <script src="game-entry-sides.js?v=20260820-1641"></script>
-  <script src="game-cinematic.js?v=20260820-1641"></script>
-  <script src="game-flight-tuning.js?v=20260820-1641"></script>
-  <script src="game-solvable-flight.js?v=20260820-1641"></script>
-  <script src="game-polish-v3.js?v=20260820-1641"></script>
-  <script src="game-main.js?v=20260820-1641"></script>
+  <script>window.__GD_BUILD__='20260820-1718';</script>
+  <script src="game-data.js?v=20260820-1718"></script>
+  <script src="game-engine.js?v=20260820-1718"></script>
+  <script src="game-render.js?v=20260820-1718"></script>
+  <script src="game-cartoon.js?v=20260820-1718"></script>
+  <script src="game-entry-sides.js?v=20260820-1718"></script>
+  <script src="game-cinematic.js?v=20260820-1718"></script>
+  <script src="game-flight-tuning.js?v=20260820-1718"></script>
+  <script src="game-solvable-flight.js?v=20260820-1718"></script>
+  <script src="game-polish-v3.js?v=20260820-1718"></script>
+  <script src="game-main.js?v=20260820-1718"></script>
 </body>
 </html>
