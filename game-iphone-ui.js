@@ -17,10 +17,22 @@
     };
   }
 
+  function phoneScale() {
+    return parseFloat(getComputedStyle(root).getPropertyValue('--gd-phone-scale')) || .78;
+  }
+
+  function worldScale() {
+    const s = phoneScale();
+    return Math.max(.62, Math.min(.78, .68 + (s - .58) * .24));
+  }
+
+  function rocketScale() {
+    const s = phoneScale();
+    return Math.max(.58, Math.min(.72, .62 + (s - .58) * .22));
+  }
+
   function applyViewportScale() {
     const {w,h} = viewport();
-    // 844x390 is the reference iPhone landscape viewport. Height is weighted most
-    // because Safari bars can remove a very large portion of usable vertical space.
     const widthScale = w / 844;
     const heightScale = h / 390;
     const scale = Math.max(.58, Math.min(1, Math.min(widthScale, heightScale)));
@@ -36,30 +48,86 @@
     body.dataset.phoneViewport = `${w}x${h}`;
   }
 
-  // Reserve only the actual amount of screen occupied by compact controls.
-  // Fixed 72/66px margins were excessive on an iPhone viewport that can be only
-  // ~240-300 CSS px high when Safari chrome is visible.
   P.safeTop = function() {
     const {h} = viewport();
-    const s = parseFloat(getComputedStyle(root).getPropertyValue('--gd-phone-scale')) || .75;
+    const s = phoneScale();
     return Math.max(34, Math.min(64, Math.round(46 * s + h * .055)));
   };
 
   P.safeBottom = function() {
     const {h} = viewport();
-    const s = parseFloat(getComputedStyle(root).getPropertyValue('--gd-phone-scale')) || .75;
+    const s = phoneScale();
     return Math.max(30, Math.min(58, Math.round(40 * s + h * .045)));
+  };
+
+  const baseDrawPlanet = P.drawPlanet;
+  P.drawPlanet = function(p,t) {
+    if (!baseDrawPlanet) return;
+    const k = worldScale();
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.scale(k,k);
+    ctx.translate(-p.x,-p.y);
+    baseDrawPlanet.call(this,p,t);
+    ctx.restore();
+  };
+
+  const baseDrawSatellite = P.drawSatellite;
+  P.drawSatellite = function(s,t) {
+    if (!baseDrawSatellite) return;
+    const k = rocketScale();
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(s.x,s.y);
+    ctx.scale(k,k);
+    ctx.translate(-s.x,-s.y);
+    baseDrawSatellite.call(this,s,t);
+    ctx.restore();
   };
 
   const oldSpawn = P.spawnLevel;
   P.spawnLevel = function() {
     applyViewportScale();
     oldSpawn.call(this);
+    const pk = worldScale();
+    const rk = rocketScale();
+    for (const p of this.planets || []) {
+      if (!p._iphoneRadiusScaled) {
+        p.radius *= Math.max(.76, pk + .08);
+        p._iphoneRadiusScaled = true;
+      }
+    }
+    for (const s of this.satellitePlan || []) {
+      if (!s._iphoneRadiusScaled) {
+        s.r = Math.max(4.5, (s.r || 7) * Math.max(.72, rk + .08));
+        s._iphoneRadiusScaled = true;
+      }
+    }
     body.classList.add('gd-briefing');
   };
 
+  async function tryFullscreen() {
+    try {
+      if (!document.fullscreenElement && root.requestFullscreen) {
+        await root.requestFullscreen({navigationUI:'hide'});
+      } else if (!document.fullscreenElement && root.webkitRequestFullscreen) {
+        root.webkitRequestFullscreen();
+      }
+    } catch (_) {}
+    try {
+      if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+    } catch (_) {}
+    if (!navigator.standalone) {
+      try { window.scrollTo(0,1); } catch (_) {}
+      setTimeout(() => { try { window.scrollTo(0,1); } catch (_) {} }, 140);
+      setTimeout(() => { try { window.scrollTo(0,1); } catch (_) {} }, 420);
+    }
+  }
+
   const oldStart = P.startRun;
   P.startRun = function() {
+    tryFullscreen();
     const out = oldStart.call(this);
     body.classList.remove('gd-briefing');
     if (this.hintTimer > 1.15) this.hintTimer = 1.15;
@@ -68,6 +136,7 @@
 
   const oldRestart = P.restart;
   P.restart = function() {
+    tryFullscreen();
     const out = oldRestart.call(this);
     body.classList.remove('gd-briefing');
     if (this.hintTimer > .75) this.hintTimer = .75;
