@@ -16,33 +16,58 @@ body.gd-portrait .orientation-gate{display:flex}
 body.gd-portrait #game-shell> :not(.orientation-gate){visibility:hidden}
 body.gd-landscape .orientation-gate{display:none}
 
-/* iPhone landscape */
-body.gd-iphone.gd-landscape .top-hud{top:calc(var(--safe-t) + 4px);gap:5px}
-body.gd-iphone.gd-landscape .game-panel{border-width:3px;border-radius:14px;box-shadow:0 3px 0 #170020;padding:5px 8px}
-body.gd-iphone.gd-landscape .level-hud{min-width:128px}
-body.gd-iphone.gd-landscape .level-line{font-size:12px}
-body.gd-iphone.gd-landscape .rank-label{font-size:7px;letter-spacing:.04em}
-body.gd-iphone.gd-landscape .rating-stars{font-size:12px;gap:1px}
-body.gd-iphone.gd-landscape .objective-hud{min-width:145px;padding-inline:8px}
-body.gd-iphone.gd-landscape .objective-title{font-size:9px;line-height:1.05}
-body.gd-iphone.gd-landscape .objective-hud strong{font-size:20px;line-height:1}
-body.gd-iphone.gd-landscape .objective-hud small{font-size:8px}
-body.gd-iphone.gd-landscape .score-hud{min-width:82px;padding-inline:7px}
-body.gd-iphone.gd-landscape .score-hud span{font-size:8px}
-body.gd-iphone.gd-landscape .score-hud strong{font-size:18px}
-body.gd-iphone.gd-landscape .icon-btn,body.gd-iphone.gd-landscape #fullscreenBtn{width:40px;height:40px;min-width:40px;min-height:40px;border-width:3px;border-radius:13px;font-size:16px}
-body.gd-iphone.gd-landscape .bottom-panel{bottom:calc(var(--safe-b) + 4px);gap:8px}
-body.gd-iphone.gd-landscape .secondary-btn{min-height:42px;padding:5px 10px;border-width:3px;border-radius:13px}
-body.gd-iphone.gd-landscape .secondary-btn small{font-size:8px}
-body.gd-iphone.gd-landscape .speed-wrap{padding:5px 8px;border-width:3px;border-radius:13px;max-width:235px}
-body.gd-iphone.gd-landscape .label-row{font-size:9px}
-body.gd-iphone.gd-landscape .meter{height:12px}
-body.gd-iphone.gd-landscape .mission-card{width:min(600px,76vw);padding:12px 14px;gap:10px;border-radius:20px}
-body.gd-iphone.gd-landscape .mission-bot{transform:scale(.75);margin:-6px}
-body.gd-iphone.gd-landscape .mission-copy h1{font-size:20px;margin:1px 0 3px}
-body.gd-iphone.gd-landscape .mission-copy p{font-size:11px;line-height:1.2}
-body.gd-iphone.gd-landscape .primary-btn{min-height:40px;padding:8px 13px;font-size:11px;border-width:3px}
-body.gd-iphone.gd-landscape .hint{font-size:11px;padding:7px 12px;bottom:58px}
+/* iPhone landscape: gameplay stays visually dominant. */
+body.gd-iphone.gd-landscape .top-hud{top:calc(var(--safe-t) + 3px);left:calc(var(--safe-l) + 6px);right:calc(var(--safe-r) + 6px);gap:4px}
+body.gd-iphone.gd-landscape .game-panel{border-width:2px;border-radius:11px;box-shadow:0 2px 0 #170020;padding:4px 6px}
+body.gd-iphone.gd-landscape .level-hud{min-width:104px;max-width:126px}
+body.gd-iphone.gd-landscape .level-line{font-size:10px}
+body.gd-iphone.gd-landscape .rank-label{font-size:6px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.gd-iphone.gd-landscape .rating-stars{display:none}
+body.gd-iphone.gd-landscape .objective-hud{min-width:118px;max-width:145px;padding-inline:6px}
+body.gd-iphone.gd-landscape .objective-title{font-size:7px;line-height:1;white-space:nowrap}
+body.gd-iphone.gd-landscape .objective-hud strong{font-size:17px;line-height:1}
+body.gd-iphone.gd-landscape .objective-hud small{font-size:7px}
+body.gd-iphone.gd-landscape .score-hud{min-width:64px;max-width:82px;padding-inline:5px}
+body.gd-iphone.gd-landscape .score-hud span{font-size:7px}
+body.gd-iphone.gd-landscape .score-hud strong{font-size:15px}
+body.gd-iphone.gd-landscape .icon-btn,body.gd-iphone.gd-landscape #fullscreenBtn{width:34px;height:34px;min-width:34px;min-height:34px;border-width:2px;border-radius:10px;font-size:14px;padding:0}
+body.gd-iphone.gd-landscape .bottom-panel{bottom:calc(var(--safe-b) + 3px);left:calc(var(--safe-l) + 7px);right:calc(var(--safe-r) + 7px);gap:6px}
+body.gd-iphone.gd-landscape .secondary-btn{min-height:34px;padding:3px 8px;border-width:2px;border-radius:10px}
+body.gd-iphone.gd-landscape .secondary-btn span{font-size:15px}
+body.gd-iphone.gd-landscape .secondary-btn small{font-size:7px}
+body.gd-iphone.gd-landscape .speed-wrap{padding:4px 7px;border-width:2px;border-radius:10px;max-width:190px}
+body.gd-iphone.gd-landscape .label-row{font-size:8px}
+body.gd-iphone.gd-landscape .meter{height:9px}
+body.gd-iphone.gd-landscape .mission-card{width:min(500px,66vw);max-height:58%;padding:9px 11px;gap:8px;border-width:3px;border-radius:16px;overflow:auto}
+body.gd-iphone.gd-landscape .mission-bot{transform:scale(.58);margin:-14px -9px}
+body.gd-iphone.gd-landscape .mission-copy{min-width:0}
+body.gd-iphone.gd-landscape .mission-copy .eyebrow{font-size:7px;margin-bottom:0}
+body.gd-iphone.gd-landscape .mission-copy h1{font-size:16px;margin:0 0 2px;line-height:1.05}
+body.gd-iphone.gd-landscape .mission-copy p{font-size:9px;line-height:1.15;margin-block:2px}
+body.gd-iphone.gd-landscape .primary-btn{min-height:34px;padding:6px 10px;font-size:9px;border-width:2px;border-radius:11px}
+body.gd-iphone.gd-landscape .hint{font-size:9px;padding:5px 9px;bottom:46px;max-width:62vw}
+body.gd-iphone.gd-landscape .overlay{padding:calc(var(--safe-t) + 8px) calc(var(--safe-r) + 10px) calc(var(--safe-b) + 8px) calc(var(--safe-l) + 10px)}
+body.gd-iphone.gd-landscape .overlay .modal{width:min(430px,58vw);max-width:58vw;max-height:68%;padding:12px 15px;border-width:3px;border-radius:17px;overflow:auto}
+body.gd-iphone.gd-landscape .overlay .modal .eyebrow{font-size:7px;margin-bottom:2px}
+body.gd-iphone.gd-landscape .overlay .modal h2{font-size:18px;line-height:1.05;margin:2px 0 5px}
+body.gd-iphone.gd-landscape .overlay .modal p{font-size:10px;line-height:1.2;margin:4px 0 8px}
+body.gd-iphone.gd-landscape .result-icon{width:38px;height:38px;font-size:22px;margin-bottom:4px}
+
+/* Very short iPhones (SE / browser chrome visible): remove non-essential chrome. */
+@media (orientation:landscape) and (max-height:390px){
+  body.gd-iphone .rank-label,body.gd-iphone .score-hud span{display:none}
+  body.gd-iphone .level-hud{min-width:82px}
+  body.gd-iphone .objective-hud{min-width:108px}
+  body.gd-iphone .top-hud{gap:3px}
+  body.gd-iphone .mission-card{width:min(460px,61vw);max-height:54%;padding:7px 9px}
+  body.gd-iphone .mission-bot{display:none}
+  body.gd-iphone .mission-copy h1{font-size:14px}
+  body.gd-iphone .mission-copy p{font-size:8px}
+  body.gd-iphone .overlay .modal{width:min(390px,54vw);max-width:54vw;max-height:62%;padding:9px 12px}
+  body.gd-iphone .overlay .modal h2{font-size:16px}
+  body.gd-iphone .overlay .modal p{font-size:9px}
+  body.gd-iphone .result-icon{width:30px;height:30px;font-size:18px}
+}
 
 /* iPad landscape */
 body.gd-ipad.gd-landscape .top-hud{top:calc(var(--safe-t) + 12px);left:calc(var(--safe-l) + 16px);right:calc(var(--safe-r) + 16px);gap:12px}
@@ -52,5 +77,5 @@ body.gd-ipad.gd-landscape .mission-card{width:min(760px,72vw);padding:22px 24px}
 body.gd-ipad.gd-landscape .mission-copy h1{font-size:clamp(26px,3.2vw,38px)}
 
 /* Generic short landscape phones */
-@media (orientation:landscape) and (max-height:430px){.top-hud{top:calc(var(--safe-t) + 3px)}.bottom-panel{bottom:calc(var(--safe-b) + 3px)}.mission-card{transform:translate(-50%,-50%) scale(.9);transform-origin:center}.modal{max-height:calc(100% - 20px - var(--safe-t) - var(--safe-b));overflow:auto}.hint{bottom:54px}}
+@media (orientation:landscape) and (max-height:430px){.top-hud{top:calc(var(--safe-t) + 3px)}.bottom-panel{bottom:calc(var(--safe-b) + 3px)}.modal{max-height:calc(100% - 20px - var(--safe-t) - var(--safe-b));overflow:auto}.hint{bottom:48px}}
 @media (orientation:landscape) and (min-width:1100px){.top-hud{left:calc(var(--safe-l) + 20px);right:calc(var(--safe-r) + 20px)}.bottom-panel{left:calc(var(--safe-l) + 22px);right:calc(var(--safe-r) + 22px)}}
